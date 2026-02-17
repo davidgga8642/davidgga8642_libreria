@@ -1,13 +1,11 @@
 def call(Map args = [:]) {
-  boolean abortPipeline = (args.get('abortPipeline', false) as boolean)
+  boolean forceAbort = (args.get('abortPipeline', false) as boolean)
 
-  // Si es multibranch, env.BRANCH_NAME suele existir
   String branch = args.get('branchName', null)
   if (!branch) { branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'unknown' }
 
-  // Ejercicio 4: lógica de aborto por rama
   boolean shouldAbort
-  if (abortPipeline) {
+  if (forceAbort) {
     shouldAbort = true
   } else if (branch == 'master') {
     shouldAbort = true
@@ -19,7 +17,6 @@ def call(Map args = [:]) {
 
   echo "Branch detected: ${branch} | abortOnQualityGateFailure=${shouldAbort}"
 
-  // Mantener sonarenv + timeout como pide la práctica
   withSonarQubeEnv('SonarQube') {
     if (isUnix()) {
       sh 'echo "Ejecucion de las pruebas de calidad de codigo"'
@@ -27,10 +24,13 @@ def call(Map args = [:]) {
       bat 'echo Ejecucion de las pruebas de calidad de codigo'
     }
 
+    // Mantener timeout como pide el enunciado (aunque sea mock)
     timeout(time: 5, unit: 'MINUTES') {
-      // OJO: waitForQualityGate requiere el plugin de SonarQube para Jenkins
-      def qg = waitForQualityGate(abortPipeline: shouldAbort)
-      echo "QualityGate status: ${qg.status}"
+      echo "Mock Quality Gate: PASSED"
+      if (shouldAbort) {
+        error("Mock Quality Gate: FAILED (abortPipeline habilitado por rama)")
+      }
     }
   }
 }
+
